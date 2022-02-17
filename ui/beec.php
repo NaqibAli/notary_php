@@ -17,7 +17,7 @@ include("sidebar.php");
             <!-- <h3 class="tile-title">Vehicle Info</h3> -->
             <div class="tile-body">
               <form id='form'>
-            
+            <input type="text" name="beec_id" id="beec_id" hidden>
               <div class="row">
                                 <div class="col-md-3">
                                     <div class="form-group">
@@ -157,3 +157,14 @@ include("sidebar.php");
 include("footer.php");
 ?>
 <script src="../scripts/vehicles.js"></script>
+
+<?php 
+
+if (isset($_GET['vehicle_id']) and $_GET['vehicle_id'] != '') {
+  ?>
+<script>
+    read_traffic(<?php echo $_GET['vehicle_id'] ?>);
+</script>
+  <?php
+} 
+?>

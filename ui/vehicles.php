@@ -1,6 +1,6 @@
 <?php
-    include("header.php");
-    include("sidebar.php");
+include "header.php";
+include "sidebar.php";
 ?>
 <link rel="stylesheet" type="text/css" href="../css/main.css">
 <main class="app-content">
@@ -43,11 +43,11 @@
         </div>
       </div>
 
-    
-            
+
+
     </main>
-    
-    <?php
-    include("footer.php");
-    ?>
- <script src="../scripts/get.js"></script>
+
+<?php
+include "footer.php";
+?>
+ <script src="../scripts/vehicles.js"></script>

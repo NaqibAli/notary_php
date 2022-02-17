@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 03, 2022 at 05:39 PM
+-- Generation Time: Feb 17, 2022 at 06:52 AM
 -- Server version: 10.4.22-MariaDB
 -- PHP Version: 7.4.27
 
@@ -62,6 +62,14 @@ UPDATE `customer_tbl` SET `Name`=_name,`Mother`=_mother,`Place`=_place,`Dob`=_do
 `Date`=_date,`user_id`=_user_id WHERE customer_tbl.ID=_id;
 SELECT 'Updated' as message;
 ENd IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_vehicle` (IN `_id` INT)  BEGIN
+
+DELETE FROM vehicle_tbl WHERE vehicle_tbl.ID =_id;
+
+SELECT 'deleted' as message;
+
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `document_get_sp` (IN `_id` VARCHAR(20))  BEGIN
@@ -287,15 +295,48 @@ if(_id="")THEN
 SELECT
 vehicle_tbl.ID,vehicle_tbl.Type,vehicle_tbl.Plate_no,vehicle_tbl.Chassis_no,
 vehicle_tbl.Model,vehicle_tbl.Color,vehicle_tbl.Cylinder,vehicle_tbl.Amount,
-vehicle_tbl.Ref,vehicle_tbl.owner_id as 'Owner',vehicle_tbl.supplier_1 as 'Supplier',vehicle_tbl.supplier_2 as 'Supplier2',vehicle_tbl.witness_1 as 'Witness', vehicle_tbl.witness_2 as 'Witness2',vehicle_tbl.Registration_date,vehicle_tbl.Date FROM vehicle_tbl;
+vehicle_tbl.Ref,owners_tbl.Name as 'Owner',c1.Name as 'Supplier',ifnull(c2.Name,'N/A') as 'Supplier2',w1.Name as 'Witness', ifnull(w2.Name,'N/A') as 'Witness2',vehicle_tbl.Registration_date,vehicle_tbl.Date FROM vehicle_tbl
+JOIN customer_tbl c1 on c1.ID=vehicle_tbl.supplier_1
+left JOIN customer_tbl c2 on c2.ID = vehicle_tbl.supplier_2
+JOIN witness_tbl w1 on w1.ID = vehicle_tbl.witness_1
+LEFT JOIN witness_tbl w2 on w2.ID = vehicle_tbl.witness_2
+JOIN owners_tbl on owners_tbl.ID = vehicle_tbl.owner_id;
 ELSE
 SELECT *FROM vehicle_tbl WHERE vehicle_tbl.ID=_id;
 END IF;
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `vehicles_print_info_sp` (IN `_id` VARCHAR(100))  BEGIN
+SELECT
+vehicle_tbl.ID,vehicle_tbl.Type,vehicle_tbl.Plate_no,vehicle_tbl.Chassis_no,
+vehicle_tbl.Model,vehicle_tbl.Color,vehicle_tbl.Cylinder,vehicle_tbl.Amount,
+vehicle_tbl.Ref,
+owners_tbl.Name as 'Owner',owners_tbl.Mother 'owner_mother',owners_tbl.Place 'owner_pob',owners_tbl.Dob 'owner_dob',owners_tbl.Address 'owner_address',owners_tbl.Identity 'owner_identity',owners_tbl.Phone 'owner_phone',
+
+c1.Name as 'Supplier',c1.Mother 'supplier_1mother',c1.Place 'supplier_1place',c1.Dob 'supplier_1dob',c1.Address 'supplier_1address',c1.Identity 'supplier_1identity',c1.Phone 'supplier_1phone',
+
+ifnull(c2.Name,'N/A') as 'Supplier2',c2.Mother 'supplier_2mother',c2.Place 'supplier_2place',c2.Dob 'supplier_2dob',c2.Address 'supplier_2address',c2.Identity 'supplier_2identity',c2.Phone 'supplier_2phone',
+
+w1.Name as 'Witness', 
+w1.Phone 'witness1phone',
+ifnull(w2.Name,'N/A') as 'Witness2',
+w2.Phone 'witness2phone',
+vehicle_tbl.Registration_date,vehicle_tbl.Date FROM vehicle_tbl
+JOIN customer_tbl c1 on c1.ID=vehicle_tbl.supplier_1
+left JOIN customer_tbl c2 on c2.ID = vehicle_tbl.supplier_2
+JOIN witness_tbl w1 on w1.ID = vehicle_tbl.witness_1
+LEFT JOIN witness_tbl w2 on w2.ID = vehicle_tbl.witness_2
+JOIN owners_tbl on owners_tbl.ID = vehicle_tbl.owner_id
+WHERE vehicle_tbl.ID=_id;
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `vehicles_sp` (IN `_id` INT(100), IN `_type` VARCHAR(100), IN `_plate_no` VARCHAR(100), IN `_chassis_no` VARCHAR(100), IN `_model` VARCHAR(100), IN `_color` VARCHAR(20), IN `_cylinder` VARCHAR(100), IN `_amount` FLOAT(20,2), IN `_Ref` VARCHAR(100), IN `owner_id` INT, IN `supplier_1` INT, IN `supplier_2` INT, IN `witness_1` INT, IN `witness_2` INT, IN `_registration_date` DATE, IN `_date` DATE, IN `_user_id` VARCHAR(100), IN `_action` VARCHAR(100))  BEGIN
 IF(_action="Insert")THEN
-INSERT INTO `vehicle_tbl`(`Type`, `Plate_no`, `Chassis_no`, `Model`, `Color`, `Cylinder`, `Amount`, `Ref`, `owner_id`, `supplier_1`, `supplier_2`, `witness_1`, `witness_2`, `Registration_date`, `Date`, `user_id`)VALUES (_type,_plate_no,_chassis_no,_model,_color,_cylinder,_amount,_Ref,owner_id,supplier_1,supplier_2,witness_1,witness_2,_registration_date,_date,_user_id);
+
+set @witness_2 =  IF(witness_2='',null,witness_2);
+set @supplier_2 = IF(supplier_2='',null,supplier_2);
+
+INSERT INTO `vehicle_tbl`(`Type`, `Plate_no`, `Chassis_no`, `Model`, `Color`, `Cylinder`, `Amount`, `Ref`, `owner_id`, `supplier_1`, `supplier_2`, `witness_1`, `witness_2`, `Registration_date`, `Date`, `user_id`)VALUES (_type,_plate_no,_chassis_no,_model,_color,_cylinder,_amount,_Ref,owner_id,supplier_1,@supplier_2,witness_1,@witness_2,_registration_date,_date,_user_id);
 SELECT 'Inserted' as message;
 ENd IF;
 IF(_action="Update")THEN
@@ -716,7 +757,8 @@ CREATE TABLE `users_tbl` (
 
 INSERT INTO `users_tbl` (`user_id`, `user_name`, `password`, `email`, `role`, `user_status`, `created_date`) VALUES
 (1, 'bashka', '*D67ABF400C6B9BC0DC45203A28BA715F29E86F01', 'bashka171@gmail.com', 'admin', 'Active', '2021-07-28'),
-(2, 'mahad', '*00A51F3F48415C7D4E8908980D443C29C69B60C9', 'mahadcad@gmail.com', 'admin', 'Active', '2021-07-28');
+(2, 'mahad', '*00A51F3F48415C7D4E8908980D443C29C69B60C9', 'mahadcad@gmail.com', 'admin', 'Active', '2021-07-28'),
+(3, 'naqib', '*23AE809DDACAF96AF0FD78ED04B6A265E05AA257', 'naqib@gmail.com', 'admin', 'Active', '2021-07-28');
 
 -- --------------------------------------------------------
 
@@ -736,9 +778,9 @@ CREATE TABLE `vehicle_tbl` (
   `Ref` varchar(50) NOT NULL,
   `owner_id` int(11) NOT NULL,
   `supplier_1` int(11) NOT NULL,
-  `supplier_2` int(11) NOT NULL,
+  `supplier_2` int(11) DEFAULT NULL,
   `witness_1` int(11) NOT NULL,
-  `witness_2` int(11) NOT NULL,
+  `witness_2` int(11) DEFAULT NULL,
   `Registration_date` date NOT NULL,
   `Date` date NOT NULL,
   `user_id` varchar(20) NOT NULL
@@ -749,7 +791,9 @@ CREATE TABLE `vehicle_tbl` (
 --
 
 INSERT INTO `vehicle_tbl` (`ID`, `Type`, `Plate_no`, `Chassis_no`, `Model`, `Color`, `Cylinder`, `Amount`, `Ref`, `owner_id`, `supplier_1`, `supplier_2`, `witness_1`, `witness_2`, `Registration_date`, `Date`, `user_id`) VALUES
-(9, 'Toyota Noah', 'AH-9535', 'SR50-965412', '1990', 'White', '4', 1200.00, 'B90/320120', 1, 1, 0, 1, 2, '2022-01-01', '2022-01-31', '1');
+(9, 'Toyota Noah', 'AH-9535', 'SR50-965412', '1990', 'White', '4', 1200.00, 'B90/320120', 1, 1, 0, 1, 2, '2022-01-01', '2022-01-31', '3'),
+(10, 'Besa', 'AB1010', '123', '25', 'white', '4', 1500.00, 'RV001/P1/012', 1, 1, 2, 1, 2, '2022-02-16', '2022-02-16', '3'),
+(13, 'Besa', 'AB1010', '123', '250', 'white', '4', 1500.00, 'RV001/P1/012', 2, 1, NULL, 2, NULL, '2022-02-16', '2022-02-16', '3');
 
 -- --------------------------------------------------------
 
@@ -940,13 +984,13 @@ ALTER TABLE `taargo_tbl`
 -- AUTO_INCREMENT for table `users_tbl`
 --
 ALTER TABLE `users_tbl`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `vehicle_tbl`
 --
 ALTER TABLE `vehicle_tbl`
-  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `wakaalad_tbl`

@@ -13,7 +13,8 @@ showModalBtn.on("click", function() {
     $("#model").modal('show');
 });
 
-$("#table").on("click", "button.delete", function() {
+$("#table").on("click", "button.delete", function(e) {
+    console.log('yes clicked')
     var vehicles_id = $(this).attr("vehicles_id");
     if (confirm("Are You sure To Delete This:  " + " " + vehicles_id + " ?")) {
         delete_vehicle(vehicles_id);
@@ -54,20 +55,22 @@ $("#form").on("submit", function(e) {
 
 
     if (btn_action == "insert") {
-        form_data.append('action', 'insert_vehicle');
+        form_data.append('action_type', 'Insert');
     } else {
-        form_data.append('action', 'update_vehicle');
+        form_data.append('action_type', 'Update');
     }
 
+    form_data.append("id",$("#beec_id").val())
+    form_data.append("owner_id",$("#owner_id").attr('owner_id'))
+    form_data.append("action",'insert_update')
 
 
 
 
     $.ajax({
         method: "POST",
-        url: "../apis/vehicles.php",
+        url: "../apis/beec.php",
         dataType: 'json',
-        cache: false,
         contentType: false,
         processData: false,
         data: form_data,
@@ -77,11 +80,11 @@ $("#form").on("submit", function(e) {
 
             if (status == true) {
 
-                ModelPopup.modal("hide");
                 btn_action = "insert";
+                $('#SupplierSelect').val([]).trigger('change');
+                $('#witness').val([]).trigger('change');
                 window.scroll(0, 0);
                 $("#form")[0].reset();
-                traffic_get_SP();
                 swal({
                     title: "Done!",
                     text: message,
@@ -91,7 +94,7 @@ $("#form").on("submit", function(e) {
 
             } else {
                 swal('Error!', message, 'error');
-                show_toast('error', message)
+                // show_toast('error', message)
                 window.scroll(0, 0);
 
 
@@ -147,13 +150,15 @@ function traffic_get_SP() {
                         row += "<td>" + item[index] + "</td>";
                     }
 
-                    row += `<td class='text-center'>                         <button class='btn  btn-primary edit' title="Edit" vehicles_id='` + item['ID'] + `'>
-                                <i class='fa fa-wrench'></i>
+                    row += `<td class='text-center d-flex'> <a class='btn btn-sm mr-1  btn-primary' target='blank' title="Print"    href="print.php?vehicle_id=${item['ID']}">
+                                <i class='fa fa-print mr-0'></i>
+                            </a>
+                            <a class='btn btn-sm mr-1 btn-warning' title="Edit" href="beec.php?vehicle_id=${item['ID']}">
+                                <i class='fa fa-wrench mr-0'></i>
+                            </a>
 
-                               
-                            </button>
-                            <button class='btn  btn-danger delete' title="Delete" vehicles_id='` + item['ID'] + `'>
-                                <i class='fa fa-trash'></i>
+                            <button class='btn btn-sm btn-danger delete' title="Delete" vehicles_id='` + item['ID'] + `'>
+                                <i class='fa fa-trash mr-0'></i>
                             </button>
                             </td>`;
 
@@ -196,12 +201,20 @@ function read_traffic(vehicles_id) {
             var message = data.message;
 
             if (status == true) {
-
-
-
+                btn_action='update';
                 message.forEach(function(item, i) {
 
-                    $("#vehicles_id").val(item['ID']);
+                    var option = $(`#owners_list option[owner_id='${item['owner_id']}']`)
+                    
+                    if (option) {
+                        $("#owner_id").val(option.attr("value"));
+                        $("#owner_id").attr('owner_id', item['owner_id']);
+                    }
+                $('#SupplierSelect').val([Number(item['supplier_1']),Number(item['supplier_2'])]).trigger('change');
+
+                $('#witness').val([Number(item['witness_1']),Number(item['witness_2'])]).trigger('change');
+
+                    $("#beec_id").val(item['ID']);
                     $("#type").val(item['Type']);
                     $("#plate_no").val(item['Plate_no']);
                     $("#Chesis_No").val(item['Chassis_no']);
@@ -212,14 +225,7 @@ function read_traffic(vehicles_id) {
                     $("#ref").val(item['Ref']);
                     $("#register").val(item['Registration_date']);
                     $("#date").val(item['Date']);
-
-
-                    ModelPopup.modal('show');
-
-
                 });
-
-
             }
 
         },
